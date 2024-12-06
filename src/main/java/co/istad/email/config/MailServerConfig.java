@@ -7,10 +7,15 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import java.io.IOException;
 
 @Configuration
 @RequiredArgsConstructor
@@ -34,16 +39,22 @@ public class MailServerConfig {
         // 1. Create Message Object
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         // 2. Set Message Object Information
-        MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage);
         try {
+            MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage, true);
             mimeMessageHelper.setText(proceedTemplate, true);
             mimeMessageHelper.setTo(mailRequest.to());
             mimeMessageHelper.setFrom(adminMail);
             mimeMessageHelper.setCc(mailRequest.cc());
             mimeMessageHelper.setSubject(mailRequest.subject());
+
+            Resource resource = new UrlResource("orders.csv");
+            mimeMessageHelper.addAttachment("report", resource.getFile());
             javaMailSender.send(mimeMessage);
         } catch (MessagingException e) {
             System.out.println("Error send mail: " + e.getMessage());
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            System.out.println("Error attachment: " + e.getMessage());
             throw new RuntimeException(e);
         }
 
